@@ -3,7 +3,6 @@
  * @fileOverview Genkit flows for sending payment-related emails.
  */
 
-import { ai } from '@/ai/genkit';
 import { sendEmail } from '@/lib/email';
 import { 
     PaymentConfirmationEmailInputSchema, 
@@ -26,106 +25,49 @@ export async function sendPaymentApprovedEmail(input: PaymentApprovedEmailInput)
 }
 
 
-// Prompt for initial payment submission
-const paymentConfirmationPrompt = ai.definePrompt({
-    name: 'paymentConfirmationPrompt',
-    input: { schema: PaymentConfirmationEmailInputSchema },
-    prompt: `
-      You are an assistant for the FundEd platform.
-      Generate a friendly email body to confirm that a student's payment has been submitted for verification.
-
-      Student's name: {{{studentName}}}.
-      Event: {{{eventName}}}.
-      Amount: {{{amount}}}.
-      Payment Method: {{{paymentMethod}}}.
-
-      The email should:
-      1. Greet the student by name.
-      2. Confirm that their payment for the specified event and amount has been submitted.
-      3. Mention that it is now pending verification by their class representative.
-      4. Be concise and polite.
-      5. End with "Sincerely, The FundEd Team".
-
-      Do not include a subject line.
-    `,
-});
-
-// Prompt for when payment is approved by a rep
-const paymentApprovedPrompt = ai.definePrompt({
-    name: 'paymentApprovedPrompt',
-    input: { schema: PaymentApprovedEmailInputSchema },
-    prompt: `
-      You are an assistant for the FundEd platform.
-      Generate a friendly email body to notify a student that their payment has been approved.
-
-      Student's name: {{{studentName}}}.
-      Event: {{{eventName}}}.
-      Amount: {{{amount}}}.
-
-      The email should:
-      1. Greet the student by name.
-      2. Joyfully inform them that their payment for the specified event has been approved by their class representative.
-      3. Mention the event name and amount.
-      4. Be concise and polite.
-      5. End with "Sincerely, The FundEd Team".
-
-      Do not include a subject line.
-    `,
-});
-
 // Flow for sending payment confirmation email
-const sendPaymentConfirmationEmailFlow = ai.defineFlow(
-  {
-    name: 'sendPaymentConfirmationEmailFlow',
-    inputSchema: PaymentConfirmationEmailInputSchema,
-    outputSchema: SendEmailOutputSchema,
-  },
-  async (input) => {
-    const { text: emailBody } = await paymentConfirmationPrompt(input);
-
-    if (!emailBody) {
-        return { success: false, message: 'Failed to generate email content.' };
-    }
+async function sendPaymentConfirmationEmailFlow(input: PaymentConfirmationEmailInput): Promise<SendEmailOutput> {
+    const emailBody = `
+      Hi ${input.studentName},<br><br>
+      This email confirms that your payment of ₹${input.amount} for the event "${input.eventName}" via ${input.paymentMethod} has been submitted successfully.<br><br>
+      It is now pending verification by your class representative. You will receive another email once it's approved.<br><br>
+      Sincerely,<br>
+      The FundEd Team
+    `;
 
     const subject = `Your payment for "${input.eventName}" has been submitted`;
     
     const result = await sendEmail({
         to: input.studentEmail,
         subject: subject,
-        html: emailBody.replace(/\n/g, '<br>'),
+        html: emailBody,
     });
 
     return result.success 
         ? { success: true, message: `Email successfully sent to ${input.studentEmail}.` }
         : { success: false, message: result.message || 'Failed to send email.' };
-  }
-);
+}
 
 
 // Flow for sending payment approved email
-const sendPaymentApprovedEmailFlow = ai.defineFlow(
-  {
-    name: 'sendPaymentApprovedEmailFlow',
-    inputSchema: PaymentApprovedEmailInputSchema,
-    outputSchema: SendEmailOutputSchema,
-  },
-  async (input) => {
-    const { text: emailBody } = await paymentApprovedPrompt(input);
-
-    if (!emailBody) {
-        return { success: false, message: 'Failed to generate email content.' };
-    }
+async function sendPaymentApprovedEmailFlow(input: PaymentApprovedEmailInput): Promise<SendEmailOutput> {
+    const emailBody = `
+      Hi ${input.studentName},<br><br>
+      Great news! Your payment of ₹${input.amount} for the event "${input.eventName}" has been approved by your class representative.<br><br>
+      You're all set for this event.<br><br>
+      Sincerely,<br>
+      The FundEd Team
+    `;
 
     const subject = `Your payment for "${input.eventName}" has been approved!`;
     
     const result = await sendEmail({
         to: input.studentEmail,
         subject: subject,
-        html: emailBody.replace(/\n/g, '<br>'),
+        html: emailBody,
     });
 
     return result.success 
         ? { success: true, message: `Email successfully sent to ${input.studentEmail}.` }
         : { success: false, message: result.message || 'Failed to send email.' };
-  }
-);
+}
