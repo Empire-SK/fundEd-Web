@@ -2,14 +2,18 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { initializeFirebase } from '@/firebase/server-init';
-import { doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 // This is required to initialize the admin app on the server
 const { firestore } = initializeFirebase();
 
 export async function POST(request: Request) {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
-  
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.error('Razorpay webhook secret not configured (RAZORPAY_WEBHOOK_SECRET is missing)');
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
   try {
     const text = await request.text();
     const signature = request.headers.get('x-razorpay-signature');
@@ -31,18 +35,17 @@ export async function POST(request: Request) {
     if (event.event === 'payment.captured') {
       const paymentEntity = event.payload.payment.entity;
       const orderId = paymentEntity.order_id;
-      
-      const { eventId, studentId, classId } = paymentEntity.notes;
+
+      const { eventId, studentId, classId } = paymentEntity.notes || {};
 
       if (!classId || !eventId || !studentId) {
         console.warn('Webhook received for order without required notes:', orderId);
         return NextResponse.json({ status: 'ignored', reason: 'Missing required notes' });
       }
 
-      // Find the payment document by razorpay_order_id
-      const paymentsRef = collection(firestore, `classes/${classId}/payments`);
-      const q = query(paymentsRef, where('razorpay_order_id', '==', orderId));
-      const querySnapshot = await getDocs(q);
+      // Use the Admin SDK's querying surface (do not mix client SDK helpers)
+      const paymentsCollectionRef = firestore.collection(`classes/${classId}/payments`);
+      const querySnapshot = await paymentsCollectionRef.where('razorpay_order_id', '==', orderId).get();
 
       if (querySnapshot.empty) {
         console.error('No payment document found for order_id:', orderId);
@@ -50,9 +53,10 @@ export async function POST(request: Request) {
       }
 
       const paymentDoc = querySnapshot.docs[0];
-      const paymentRef = doc(firestore, `classes/${classId}/payments`, paymentDoc.id);
+      const paymentRef = paymentDoc.ref;
 
-      await updateDoc(paymentRef, {
+      // Update the payment doc (idempotent)
+      await paymentRef.update({
         status: 'Paid',
         transactionId: paymentEntity.id,
       });
