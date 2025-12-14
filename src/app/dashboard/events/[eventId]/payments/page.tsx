@@ -231,7 +231,9 @@ export default function EventPaymentsPage() {
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg font-code">{transaction.id}</CardTitle>
+                      <CardTitle className="text-lg font-code">
+                        {transaction.id.startsWith('pending_') ? 'BALANCE DUE' : transaction.id}
+                      </CardTitle>
                       <CardDescription>{transaction.studentName} ({transaction.studentRoll})</CardDescription>
                     </div>
                     <StatusBadge status={transaction.status} />
@@ -278,7 +280,9 @@ export default function EventPaymentsPage() {
               <TableBody>
                 {transactions?.map((transaction) => (
                   <TableRow key={transaction.id}>
-                    <TableCell className="font-code text-center">{transaction.id}</TableCell>
+                    <TableCell className="font-code text-center">
+                      {transaction.id.startsWith('pending_') ? <span className="text-muted-foreground italic">BALANCE DUE</span> : transaction.id}
+                    </TableCell>
                     <TableCell className="text-center">
                       <div className="font-medium">{transaction.studentName}</div>
                       <div className="text-xs text-muted-foreground">

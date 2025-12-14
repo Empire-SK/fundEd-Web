@@ -5,24 +5,31 @@ import { revalidatePath } from 'next/cache';
 
 export async function getEvents() {
   try {
-    const events = await prisma.event.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        payments: true,
-      }
-    });
+    const [events, totalStudents] = await Promise.all([
+      prisma.event.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          payments: true,
+        }
+      }),
+      prisma.student.count(),
+    ]);
     
     // Calculate totals manually since we are fetching relations anyway
     const eventsWithStats = events.map(event => {
       const totalCollected = event.payments
         .filter(p => p.status === 'Paid')
         .reduce((acc, p) => acc + p.amount, 0);
+
+      const expectedCollection = event.cost * totalStudents;
+      const totalPending = Math.max(0, expectedCollection - totalCollected);
         
       return {
         ...event,
         totalCollected,
+        totalPending,
         deadline: event.deadline.toISOString(),
         createdAt: event.createdAt.toISOString(),
         updatedAt: event.updatedAt.toISOString(),
