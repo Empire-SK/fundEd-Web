@@ -1,15 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function MouseFollower() {
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    const blobRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({
-                x: e.clientX,
-                y: e.clientY,
+            if (!blobRef.current) return;
+
+            const { clientX, clientY } = e;
+
+            // Direct DOM manipulation guarantees 60fps without React re-renders
+            blobRef.current.animate({
+                transform: `translate(${clientX - 250}px, ${clientY - 250}px)`
+            }, {
+                duration: 2000, // Slower duration for smoother lag effect
+                fill: "forwards",
+                easing: "ease-out"
             });
         };
 
@@ -21,11 +29,13 @@ export function MouseFollower() {
 
     return (
         <div
-            className="fixed w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[80px] pointer-events-none transition-transform duration-200 ease-out mix-blend-screen z-[5]"
+            ref={blobRef}
+            className="fixed w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[80px] pointer-events-none mix-blend-screen z-[5] will-change-transform"
             style={{
                 top: 0,
                 left: 0,
-                transform: `translate(${mousePosition.x - 250}px, ${mousePosition.y - 250}px)`
+                // Initial position off-screen or safe default
+                transform: 'translate(-50%, -50%)'
             }}
         />
     );

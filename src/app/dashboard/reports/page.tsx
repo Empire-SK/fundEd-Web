@@ -143,12 +143,12 @@ export default function ReportsPage() {
 
         try {
             const filename = reportType === 'event'
-                ? `event_report_${selectedEvent}`
+                ? `Event_Report_${selectedEvent}`
                 : reportType === 'summary'
-                    ? 'transaction_summary'
+                    ? 'Transaction_Summary'
                     : reportType === 'student'
-                        ? 'student_wise_report'
-                        : 'transaction_report';
+                        ? 'Student_Wise_Report'
+                        : 'Transaction_Report';
 
             const res = await exportToCSV(transactions, filename, reportSummary);
 
@@ -159,9 +159,13 @@ export default function ReportsPage() {
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
 
+                // Generate a robust filename with date
+                const dateStr = new Date().toISOString().split('T')[0];
+                const finalFilename = `${filename}_${dateStr}.csv`;
+
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = res.data.filename;
+                link.setAttribute('download', finalFilename); // Explicitly set download attribute
                 link.style.display = 'none';
                 document.body.appendChild(link);
                 link.click();
@@ -179,6 +183,113 @@ export default function ReportsPage() {
         } catch (error) {
             console.error('CSV Download Error:', error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to download CSV' });
+        }
+    };
+
+    const handleDownloadPDF = async () => {
+        if (transactions.length === 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No data to export' });
+            return;
+        }
+
+        try {
+            // Dynamically import jsPDF to avoid SSR issues
+            const { default: jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+
+            const doc = new jsPDF();
+
+            // Add title
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FundEd - Report', 14, 20);
+
+            // Add report type
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            const reportTypeText = reportType === 'event'
+                ? 'Event-wise Report'
+                : reportType === 'summary'
+                    ? 'Transaction Summary'
+                    : reportType === 'student'
+                        ? 'Student-wise Report'
+                        : 'Transaction Report';
+            doc.text(reportTypeText, 14, 28);
+
+            let yPosition = 35;
+
+            // Add summary if available
+            if (reportSummary) {
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Summary', 14, yPosition);
+                yPosition += 8;
+
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+
+                const summaryData = [
+                    ['Total Transactions', (reportSummary.totalTransactions || 0).toString()],
+                    ['Total Collected', `₹${(reportSummary.totalCollected || reportSummary.paidAmount || 0).toLocaleString()}`],
+                    ['Pending Amount', `₹${(reportSummary.totalPending || reportSummary.pendingAmount || 0).toLocaleString()}`],
+                    ['Paid Count', (reportSummary.paidCount || 0).toString()],
+                ];
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [],
+                    body: summaryData,
+                    theme: 'grid',
+                    styles: { fontSize: 10 },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', cellWidth: 60 },
+                        1: { cellWidth: 'auto' }
+                    }
+                });
+
+                yPosition = (doc as any).lastAutoTable.finalY + 10;
+            }
+
+            // Add transactions table
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Transactions', 14, yPosition);
+            yPosition += 5;
+
+            if (transactions.length > 0) {
+                const headers = Object.keys(transactions[0]);
+                const data = transactions.map(t => Object.values(t).map(String));
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [headers],
+                    body: data,
+                    theme: 'striped',
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+                    alternateRowStyles: { fillColor: [245, 245, 245] },
+                });
+            }
+
+            // Generate filename
+            const filename = reportType === 'event'
+                ? `Event_Report_${selectedEvent}`
+                : reportType === 'summary'
+                    ? 'Transaction_Summary'
+                    : reportType === 'student'
+                        ? 'Student_Wise_Report'
+                        : 'Transaction_Report';
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            const finalFilename = `${filename}_${dateStr}.pdf`;
+
+            // Save PDF
+            doc.save(finalFilename);
+
+            toast({ title: 'Downloaded', description: 'PDF report downloaded successfully' });
+        } catch (error) {
+            console.error('PDF Download Error:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to download PDF' });
         }
     };
 
@@ -217,80 +328,86 @@ export default function ReportsPage() {
                     <h3 className="text-lg font-semibold">Report Configuration</h3>
                 </div>
 
-                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="report-type">Report Type</Label>
-                        <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
-                            <SelectTrigger id="report-type">
-                                <SelectValue placeholder="Select report type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="transaction">All Transactions</SelectItem>
-                                <SelectItem value="event">Event-wise Report</SelectItem>
-                                <SelectItem value="summary">Transaction Summary</SelectItem>
-                                <SelectItem value="student">Student-wise Report</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {reportType === 'event' && (
+                <div className="space-y-4">
+                    {/* First Row: Report Type and Event Selection */}
+                    <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="event">Select Event</Label>
-                            <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                                <SelectTrigger id="event">
-                                    <SelectValue placeholder="Select event" />
+                            <Label htmlFor="report-type">Report Type</Label>
+                            <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
+                                <SelectTrigger id="report-type">
+                                    <SelectValue placeholder="Select report type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {events.map(event => (
-                                        <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
-                                    ))}
+                                    <SelectItem value="transaction">All Transactions</SelectItem>
+                                    <SelectItem value="event">Event-wise Report</SelectItem>
+                                    <SelectItem value="summary">Transaction Summary</SelectItem>
+                                    <SelectItem value="student">Student-wise Report</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                    )}
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="date-from">Date From</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date-from"
-                                    variant="outline"
-                                    className={cn(
-                                        'w-full justify-start text-left font-normal',
-                                        !dateFrom && 'text-muted-foreground'
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateFrom ? format(dateFrom, 'PPP') : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
-                            </PopoverContent>
-                        </Popover>
+                        {reportType === 'event' && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="event">Select Event</Label>
+                                <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+                                    <SelectTrigger id="event">
+                                        <SelectValue placeholder="Select event" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {events.map(event => (
+                                            <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="date-to">Date To</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date-to"
-                                    variant="outline"
-                                    className={cn(
-                                        'w-full justify-start text-left font-normal',
-                                        !dateTo && 'text-muted-foreground'
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateTo ? format(dateTo, 'PPP') : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
-                            </PopoverContent>
-                        </Popover>
+                    {/* Second Row: Date Range */}
+                    <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="date-from">Date From</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date-from"
+                                        variant="outline"
+                                        className={cn(
+                                            'w-full justify-start text-left font-normal',
+                                            !dateFrom && 'text-muted-foreground'
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateFrom ? format(dateFrom, 'PPP') : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="date-to">Date To</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date-to"
+                                        variant="outline"
+                                        className={cn(
+                                            'w-full justify-start text-left font-normal',
+                                            !dateTo && 'text-muted-foreground'
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateTo ? format(dateTo, 'PPP') : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </div>
                 </div>
 
@@ -301,10 +418,16 @@ export default function ReportsPage() {
                     </Button>
 
                     {transactions.length > 0 && (
-                        <Button onClick={handleDownloadCSV} variant="outline" className="gap-2 w-full sm:w-auto">
-                            <Download className="h-4 w-4" />
-                            Download CSV
-                        </Button>
+                        <>
+                            <Button onClick={handleDownloadCSV} variant="outline" className="gap-2 w-full sm:w-auto">
+                                <Download className="h-4 w-4" />
+                                Download CSV
+                            </Button>
+                            <Button onClick={handleDownloadPDF} variant="outline" className="gap-2 w-full sm:w-auto">
+                                <FileText className="h-4 w-4" />
+                                Download PDF
+                            </Button>
+                        </>
                     )}
                 </div>
             </GlassCard>

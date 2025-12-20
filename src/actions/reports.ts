@@ -202,27 +202,41 @@ export async function generateStudentReport(studentId: string) {
 
 export async function exportToCSV(data: any[], filename: string, summary?: any) {
   try {
-    let csvData = data;
-    
-    // If summary is provided, add it as header rows
+    let csvContent = '';
+
+    // If summary is provided, add it as header section
     if (summary) {
+      // 1. Create Summary Array for Unparsing
       const summaryRows = [
-        { '': '=== SUMMARY ===' },
+        { Label: '=== SUMMARY ===', Value: '' },
         ...Object.entries(summary).map(([key, value]) => ({
-          '': key,
-          ' ': value
+          Label: key.replace(/([A-Z])/g, ' $1').trim(), // CamelCase to Title Case
+          Value: value
         })),
-        { '': '' }, // Empty row separator
-        { '': '=== TRANSACTIONS ===' },
+        { Label: '', Value: '' }, // Spacer
+        { Label: '=== REPORT DATA ===', Value: '' },
       ];
-      csvData = [...summaryRows, ...data];
+      
+      // 2. Unparse Summary (disable quotes to look cleaner if desired, but default is safer)
+      const summaryCSV = Papa.unparse(summaryRows, {
+        header: false // We don't need "Label,Value" header
+      });
+      
+      csvContent += summaryCSV + '\n\n';
     }
     
-    const csv = Papa.unparse(csvData);
+    // 3. Unparse Main Data
+    if (data.length > 0) {
+      const dataCSV = Papa.unparse(data);
+      csvContent += dataCSV;
+    } else {
+        csvContent += "No data available for the selected range.";
+    }
+    
     return {
       success: true,
       data: {
-        csv,
+        csv: csvContent,
         filename: `${filename}_${new Date().toISOString().split('T')[0]}.csv`,
       }
     };

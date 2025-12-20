@@ -63,10 +63,10 @@ function MainNav() {
           <Link href={item.href}>
             <SidebarMenuButton
               isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}
-              icon={<item.icon />}
               tooltip={item.label}
             >
-              {item.label}
+              <item.icon />
+              <span>{item.label}</span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
@@ -151,7 +151,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-black text-stone-200 font-sans selection:bg-emerald-500/30 selection:text-emerald-100 overflow-hidden relative cursor-none">
+    <div className="dark min-h-screen bg-black text-stone-200 font-sans selection:bg-emerald-500/30 selection:text-emerald-100 overflow-hidden relative cursor-none">
 
       {/* Custom Cursor */}
       <CustomCursor />
@@ -164,13 +164,13 @@ export default function DashboardLayout({
       {/* Floating Orbs Background */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {/* Orb 1: Deep Emerald */}
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-emerald-600/30 via-emerald-800/20 to-transparent blur-[120px] mix-blend-screen opacity-60 animate-float" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-emerald-600/30 via-emerald-800/20 to-transparent blur-[120px] mix-blend-screen opacity-60 animate-float will-change-transform" />
 
         {/* Orb 2: Bright Lime */}
-        <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-br from-lime-500/20 via-lime-700/15 to-transparent blur-[100px] mix-blend-screen opacity-50 animate-float-delayed" />
+        <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-gradient-to-br from-lime-500/20 via-lime-700/15 to-transparent blur-[100px] mix-blend-screen opacity-50 animate-float-delayed will-change-transform" />
 
         {/* Orb 3: Cool Teal */}
-        <div className="absolute bottom-[-15%] left-[15%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-br from-teal-600/25 via-teal-800/20 to-transparent blur-[110px] mix-blend-screen opacity-55 animate-float-slow" />
+        <div className="absolute bottom-[-15%] left-[15%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-br from-teal-600/25 via-teal-800/20 to-transparent blur-[110px] mix-blend-screen opacity-55 animate-float-slow will-change-transform" />
 
         {/* Mouse Follower Light */}
         <MouseFollower />
@@ -180,9 +180,9 @@ export default function DashboardLayout({
         <div className="min-h-screen w-full flex relative z-10">
           <Sidebar
             collapsible="icon"
-            className="border-r border-white/10 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-xl hidden md:flex flex-col"
+            className="border-r border-white/5 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-xl hidden md:flex flex-col"
           >
-            <SidebarHeader className="p-4 border-b border-white/10">
+            <SidebarHeader className="p-4 md:p-6 border-b border-white/5">
               <Link href="/dashboard" className="flex items-center gap-3 group">
                 <div className="p-2 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
                   <GraduationCap className="h-5 w-5 text-emerald-400" />
@@ -193,15 +193,16 @@ export default function DashboardLayout({
                 )}>FundEd</span>
               </Link>
             </SidebarHeader>
-            <SidebarContent className="p-2">
+            <SidebarContent className="px-3 py-4 gap-2">
               <MainNav />
             </SidebarContent>
-            <SidebarFooter className="p-2 border-t border-white/10">
+            <SidebarFooter className="p-4 md:p-6 border-t border-white/5">
               <SidebarMenu>
                 <SidebarMenuItem>
                   <Link href="/dashboard/settings">
-                    <SidebarMenuButton icon={<Settings />} tooltip="Settings" isActive={pathname === '/dashboard/settings'}>
-                      Settings
+                    <SidebarMenuButton tooltip="Settings" isActive={pathname === '/dashboard/settings'}>
+                      <Settings />
+                      <span>Settings</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -210,7 +211,7 @@ export default function DashboardLayout({
           </Sidebar>
 
           <div className="flex flex-col flex-1">
-            <header className="flex h-16 items-center gap-4 border-b border-white/10 bg-black/40 backdrop-blur-xl px-4 md:px-6 sticky top-0 z-30">
+            <header className="flex h-16 items-center gap-4 border-b border-white/5 bg-black/40 backdrop-blur-xl px-4 md:px-8 sticky top-0 z-30">
               <MobileNav />
               <div className="w-full flex-1">
                 {/* Optional: Add a search bar here */}
@@ -283,8 +284,8 @@ export default function DashboardLayout({
             </main>
 
             {/* Footer with Branding */}
-            <footer className="border-t border-white/10 bg-black/40 backdrop-blur-xl px-4 md:px-6 py-4">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-stone-400">
+            <footer className="border-t border-white/5 bg-black/40 backdrop-blur-xl px-4 md:px-8 py-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
                 <p>© 2024 FundEd - Classroom OS. All rights reserved.</p>
                 <p className="flex items-center gap-1">
                   A sub-product of <span className="text-emerald-400 font-semibold">SKS DM</span>
