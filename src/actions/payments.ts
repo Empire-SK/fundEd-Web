@@ -5,14 +5,16 @@ import { revalidatePath } from 'next/cache';
 
 export async function getEventPayments(eventId: string) {
   try {
-    const [event, transactions, students] = await Promise.all([
-      prisma.event.findUnique({ where: { id: eventId } }),
+    const [event, transactions] = await Promise.all([
+      prisma.event.findUnique({ 
+        where: { id: eventId },
+        include: { participants: true }
+      }),
       prisma.payment.findMany({
         where: { eventId },
         include: { student: true },
         orderBy: { paymentDate: 'desc' }
       }),
-      prisma.student.findMany()
     ]);
 
     if (!event) return { success: false, error: 'Event not found' };
@@ -28,7 +30,8 @@ export async function getEventPayments(eventId: string) {
     }));
 
     // Generate virtual "Pending" transactions for balances
-    const virtualTransactions = students.reduce((acc: any[], student) => {
+    const studentsToCheck = event.participants || [];
+    const virtualTransactions = studentsToCheck.reduce((acc: any[], student) => {
       // Filter transactions for this student
       // We only consider 'Paid' or 'Verification Pending' as potentially covering the cost? 
       // Actually strictly speaking, 'Paid' covers cost. 'Verification Pending' is also usually treated as "money sent but not verified".

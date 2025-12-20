@@ -71,6 +71,15 @@ export default function EventsPage() {
     const [deadline, setDeadline] = useState<Date>();
     const [category, setCategory] = useState<'Normal' | 'Print'>('Normal');
     const [paymentOptions, setPaymentOptions] = useState<string[]>(['Razorpay']);
+    const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSelectionDialogOpen, setIsSelectionDialogOpen] = useState(false);
+
+    const filteredStudents = students.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.rollNo.includes(searchQuery) ||
+        student.class.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
         fetchData();
@@ -109,6 +118,7 @@ export default function EventsPage() {
             deadline: deadline.toISOString(),
             category,
             paymentOptions,
+            selectedStudents,
         };
 
         const result = editingEvent
@@ -148,6 +158,7 @@ export default function EventsPage() {
         setDeadline(new Date(event.deadline));
         setCategory(event.category);
         setPaymentOptions(event.paymentOptions);
+        setSelectedStudents(event.participantIds || []);
         setIsDialogOpen(true);
     };
 
@@ -159,6 +170,8 @@ export default function EventsPage() {
         setDeadline(undefined);
         setCategory('Normal');
         setPaymentOptions(['Razorpay']);
+        setSelectedStudents(students.map(s => s.id)); // Default to all
+        setSearchQuery('');
     };
 
     const copyPaymentLink = (eventId: string) => {
@@ -175,8 +188,10 @@ export default function EventsPage() {
             ? new Set(event.payments.filter(p => p.status === 'Paid').map(p => p.studentId)).size
             : 0;
 
-        // Calculate percentage: (paid students / total students) * 100
-        return (paidStudentsCount / students.length) * 100;
+        // Calculate percentage: (paid students / total participants) * 100
+        const totalParticipants = event.participantCount || students.length; // Fallback for safety
+        if (totalParticipants === 0) return 0;
+        return (paidStudentsCount / totalParticipants) * 100;
     };
 
     if (isLoading) {
@@ -236,7 +251,7 @@ export default function EventsPage() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="cost">Cost (₹) *</Label>
                                             <Input
@@ -304,6 +319,103 @@ export default function EventsPage() {
                                     </div>
 
                                     <div className="grid gap-2">
+                                        <Label>Participants ({selectedStudents.length} selected)</Label>
+                                        <div className="flex items-center justify-between border rounded-md p-3 bg-muted/20">
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id="main-select-all"
+                                                    checked={selectedStudents.length === students.length && students.length > 0}
+                                                    onCheckedChange={(checked) => {
+                                                        if (checked) {
+                                                            setSelectedStudents(students.map(s => s.id));
+                                                        } else {
+                                                            setSelectedStudents([]);
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor="main-select-all" className="text-sm font-medium cursor-pointer">
+                                                    Select All
+                                                </label>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setIsSelectionDialogOpen(true)}
+                                            >
+                                                Select Specific
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Dialog open={isSelectionDialogOpen} onOpenChange={setIsSelectionDialogOpen}>
+                                        <DialogContent className="max-w-md">
+                                            <DialogHeader>
+                                                <DialogTitle>Select Participants</DialogTitle>
+                                                <DialogDescription>
+                                                    Search and select students for this event.
+                                                </DialogDescription>
+                                            </DialogHeader>
+
+                                            <div className="py-4 space-y-4">
+                                                <Input
+                                                    placeholder="Search by name, class or roll no..."
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    autoFocus
+                                                />
+
+                                                <div className="border rounded-md p-3 max-h-[60vh] overflow-y-auto space-y-2">
+                                                    <div className="flex items-center space-x-2 pb-2 border-b mb-2 sticky top-0 bg-background/95 backdrop-blur z-10">
+                                                        <Checkbox
+                                                            id="modal-select-all"
+                                                            checked={selectedStudents.length === students.length && students.length > 0}
+                                                            onCheckedChange={(checked) => {
+                                                                if (checked) {
+                                                                    setSelectedStudents(students.map(s => s.id));
+                                                                } else {
+                                                                    setSelectedStudents([]);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label htmlFor="modal-select-all" className="text-sm font-medium cursor-pointer">
+                                                            Select All
+                                                        </label>
+                                                    </div>
+
+                                                    {filteredStudents.map((student) => (
+                                                        <div key={student.id} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`student-${student.id}`}
+                                                                checked={selectedStudents.includes(student.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (checked) {
+                                                                        setSelectedStudents([...selectedStudents, student.id]);
+                                                                    } else {
+                                                                        setSelectedStudents(selectedStudents.filter(id => id !== student.id));
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <label htmlFor={`student-${student.id}`} className="text-sm cursor-pointer flex-1">
+                                                                {student.name} <span className="text-muted-foreground text-xs">({student.class} - {student.rollNo})</span>
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                    {filteredStudents.length === 0 && (
+                                                        <p className="text-sm text-muted-foreground text-center py-2">No students match your search.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <DialogFooter>
+                                                <Button type="button" onClick={() => setIsSelectionDialogOpen(false)}>
+                                                    Done
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+
+                                    <div className="grid gap-2">
                                         <Label>Payment Options</Label>
                                         <div className="flex gap-4">
                                             {['Razorpay', 'QR', 'Cash'].map((option) => (
@@ -363,7 +475,7 @@ export default function EventsPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {events.map((event) => (
                         <GlassCard key={event.id} className="group hover-lift relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full -mr-16 -mt-16" />
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
 
                             <CardHeader>
                                 <div className="flex items-start justify-between">
@@ -374,7 +486,7 @@ export default function EventsPage() {
 
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 relative z-10">
                                                 <MoreVertical className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -432,11 +544,28 @@ export default function EventsPage() {
                                         <p className="text-lg font-bold text-green-600 dark:text-green-400">
                                             ₹{(event.totalCollected || 0).toLocaleString()}
                                         </p>
+                                        <p className="text-xs text-green-600/80">
+                                            {(() => {
+                                                const uniquePaid = event.payments
+                                                    ? new Set(event.payments.filter(p => p.status === 'Paid').map(p => p.studentId)).size
+                                                    : 0;
+                                                return `${uniquePaid} Students`;
+                                            })()}
+                                        </p>
                                     </div>
                                     <div className="text-center p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20">
                                         <p className="text-xs text-muted-foreground">Pending</p>
                                         <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                                             ₹{(event.totalPending || 0).toLocaleString()}
+                                        </p>
+                                        <p className="text-xs text-orange-600/80">
+                                            {(() => {
+                                                const uniquePaid = event.payments
+                                                    ? new Set(event.payments.filter(p => p.status === 'Paid').map(p => p.studentId)).size
+                                                    : 0;
+                                                const total = event.participantCount || students.length;
+                                                return `${Math.max(0, total - uniquePaid)} Students`;
+                                            })()}
                                         </p>
                                     </div>
                                 </div>

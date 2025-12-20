@@ -338,7 +338,7 @@ export default function PaymentPage() {
       </div>
 
       {/* Navigation */}
-      <header className="relative z-20 w-full px-6 py-8">
+      <header className="relative z-20 w-full px-6 py-4">
         <div className="container mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
@@ -346,8 +346,11 @@ export default function PaymentPage() {
               <GraduationCap className="h-8 w-8 text-emerald-400 relative z-10" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-white group-hover:text-emerald-200 transition-colors">
+              <span className="text-xl font-bold tracking-tight text-white group-hover:text-emerald-200 transition-colors leading-none">
                 FundEd
+              </span>
+              <span className="text-[10px] text-emerald-500/80 font-medium tracking-widest uppercase mt-0.5">
+                Classroom OS
               </span>
             </div>
           </Link>
@@ -359,29 +362,29 @@ export default function PaymentPage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[calc(100vh-140px)]">
+      <main className="relative z-10 container mx-auto px-4 py-2 flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
 
-        <GlassCard className="w-full max-w-2xl border-white/10 p-1 backdrop-blur-2xl shadow-2xl">
-          <div className="bg-black/40 rounded-lg p-6 md:p-8">
-            <CardHeader className="px-0 pt-0 pb-6 text-center">
-              <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center mb-4 border border-emerald-500/20 shadow-inner">
-                <Lock className="w-8 h-8 text-emerald-400" />
+        <GlassCard className="w-full max-w-xl border-white/10 p-1 backdrop-blur-2xl shadow-2xl">
+          <div className="bg-black/40 rounded-lg p-6">
+            <CardHeader className="px-0 pt-0 pb-4 text-center">
+              <div className="mx-auto w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center mb-3 border border-emerald-500/20 shadow-inner">
+                <Lock className="w-6 h-6 text-emerald-400" />
               </div>
-              <CardTitle className="text-3xl font-bold tracking-tight text-white mb-2">{event.name}</CardTitle>
-              <CardDescription className="text-lg text-stone-400 max-w-lg mx-auto leading-relaxed">{event.description}</CardDescription>
+              <CardTitle className="text-2xl font-bold tracking-tight text-white mb-1">{event.name}</CardTitle>
+              <CardDescription className="text-base text-stone-400 max-w-lg mx-auto leading-relaxed line-clamp-2">{event.description}</CardDescription>
             </CardHeader>
 
-            <CardContent className="grid gap-8 px-0">
-              <div className="flex flex-col items-center justify-center py-6 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
+            <CardContent className="grid gap-5 px-0">
+              <div className="flex flex-col items-center justify-center py-4 bg-white/5 rounded-2xl border border-white/5 relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                <span className="text-stone-400 text-sm font-medium uppercase tracking-wider mb-1">Total Amount Due</span>
-                <span className="font-bold text-4xl text-white tracking-tight flex items-center">
+                <span className="text-stone-400 text-xs font-medium uppercase tracking-wider mb-1">Total Amount Due</span>
+                <span className="font-bold text-3xl text-white tracking-tight flex items-center">
                   <span className="text-emerald-500 mr-1">₹</span>
                   {event.cost.toLocaleString()}
                 </span>
               </div>
 
-              <div className="grid gap-5">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="student" className="text-stone-300">Select Student</Label>
                   <Popover open={open} onOpenChange={setOpen}>
@@ -390,7 +393,7 @@ export default function PaymentPage() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-full justify-between h-12 bg-black/20 border-white/10 hover:bg-white/5 hover:border-emerald-500/50 text-stone-200"
+                        className="w-full justify-between h-10 bg-black/20 border-white/10 hover:bg-white/5 hover:border-emerald-500/50 text-stone-200"
                       >
                         {selectedStudent
                           ? <span className="text-white font-medium">{selectedStudent.name} ({selectedStudent.rollNo})</span>
@@ -439,7 +442,7 @@ export default function PaymentPage() {
                 </div>
 
                 {selectedStudent && (
-                  <div className="grid gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="grid gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-stone-400">Full Name</span>
                       <span className="text-emerald-100 font-medium">{selectedStudent.name}</span>
@@ -450,7 +453,7 @@ export default function PaymentPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-stone-400">Email</span>
-                      <span className="text-emerald-100 font-medium">{selectedStudent.email}</span>
+                      <span className="text-emerald-100 font-medium truncate max-w-[200px] text-right">{selectedStudent.email}</span>
                     </div>
                   </div>
                 )}
@@ -458,7 +461,7 @@ export default function PaymentPage() {
                 <div className="grid gap-2">
                   <Label htmlFor="paymentMethod" className="text-stone-300">Payment Method</Label>
                   <Select onValueChange={setSelectedMethod} disabled={!selectedStudent}>
-                    <SelectTrigger className="h-12 bg-black/20 border-white/10 hover:bg-white/5 focus:ring-emerald-500/20 text-stone-200">
+                    <SelectTrigger className="h-10 bg-black/20 border-white/10 hover:bg-white/5 focus:ring-emerald-500/20 text-stone-200">
                       <SelectValue placeholder="Select a payment method" />
                     </SelectTrigger>
                     <SelectContent className="bg-black/90 border-white/10 backdrop-blur-xl text-stone-200">
@@ -478,7 +481,7 @@ export default function PaymentPage() {
             </CardContent>
             <CardFooter className="px-0 pb-0 pt-2">
               <Button
-                className="w-full h-14 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all hover:scale-[1.02]"
+                className="w-full h-12 text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-0 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all hover:scale-[1.02]"
                 size="lg"
                 disabled={!selectedStudent || !selectedMethod || isSubmitting}
                 onClick={handlePayClick}
@@ -489,10 +492,15 @@ export default function PaymentPage() {
           </div>
         </GlassCard>
 
-        <p className="mt-8 text-center text-xs text-stone-500 flex items-center gap-1 opacity-60">
-          <Lock className="w-3 h-3" />
-          Secure payment powered by FundEd
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <p className="text-center text-xs text-stone-500 flex items-center gap-1 opacity-60">
+            <Lock className="w-3 h-3" />
+            Secure payment powered by FundEd
+          </p>
+          <p className="flex items-center gap-1 text-xs text-stone-600">
+            A sub-product of <span className="text-emerald-500 font-semibold">SKS DM</span>
+          </p>
+        </div>
 
       </main>
 

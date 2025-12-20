@@ -23,7 +23,7 @@ import { ArrowLeft, Check, X, DollarSign } from 'lucide-react';
 import type { Transaction, Event, Student } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendPaymentApprovedEmail } from '@/app/actions';
-import { BrandedLoader } from '@/components/ui/branded-loader';
+import { PageLoader } from '@/components/ui/page-loader';
 import { useEffect, useState } from 'react';
 import { getEventPayments, updatePaymentStatus } from '@/actions/payments';
 import { getStudents } from '@/actions/students';
@@ -128,7 +128,7 @@ export default function EventPaymentsPage() {
   if (isLoading) {
     return (
       <Card className="flex items-center justify-center py-12">
-        <BrandedLoader />
+        <PageLoader message="Fetching transaction details..." />
       </Card>
     )
   }

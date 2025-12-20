@@ -36,6 +36,8 @@ export type Event = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   payments?: Payment[];
+  participantIds?: string[];
+  participantCount?: number;
 };
 
 export type Student = {

@@ -5,35 +5,49 @@ import { revalidatePath } from 'next/cache';
 
 export async function getEvents() {
   try {
-    const [events, totalStudents] = await Promise.all([
+    const [events, globalTotalStudents] = await Promise.all([
       prisma.event.findMany({
         orderBy: {
           createdAt: 'desc',
         },
         include: {
           payments: true,
+          _count: {
+            select: { participants: true }
+          },
+          participants: {
+            select: { id: true }
+          }
         }
       }),
       prisma.student.count(),
     ]);
     
-    // Calculate totals manually since we are fetching relations anyway
+    // Calculate totals
     const eventsWithStats = events.map(event => {
       const totalCollected = event.payments
         .filter(p => p.status === 'Paid')
         .reduce((acc, p) => acc + p.amount, 0);
 
-      const expectedCollection = event.cost * totalStudents;
+      // Use event-specific participant count if available (via relation), else fallback
+      // Since we migrated, this should be accurate.
+      const participantCount = event._count.participants > 0 
+          ? event._count.participants 
+          : 0; // If 0, it means 0 selected. Migration ensures legacy events have all.
+      
+      const expectedCollection = event.cost * participantCount;
       const totalPending = Math.max(0, expectedCollection - totalCollected);
         
       return {
         ...event,
         totalCollected,
         totalPending,
+        participantCount,
         deadline: event.deadline.toISOString(),
         createdAt: event.createdAt.toISOString(),
         updatedAt: event.updatedAt.toISOString(),
         paymentOptions: JSON.parse(event.paymentOptions),
+        participantIds: event.participants.map(p => p.id), // Send IDs for edit form
       };
     });
 
@@ -52,6 +66,7 @@ export async function createEvent(data: {
   paymentOptions: string[];
   qrCodeUrl?: string;
   category: string;
+  selectedStudents: string[];
 }) {
   try {
     const event = await prisma.event.create({
@@ -63,6 +78,9 @@ export async function createEvent(data: {
         paymentOptions: JSON.stringify(data.paymentOptions),
         qrCodeUrl: data.qrCodeUrl,
         category: data.category,
+        participants: {
+             connect: data.selectedStudents.map(id => ({ id }))
+        }
       },
     });
     revalidatePath('/dashboard/events');
@@ -81,6 +99,7 @@ export async function updateEvent(id: string, data: {
   paymentOptions: string[];
   qrCodeUrl?: string;
   category: string;
+  selectedStudents: string[];
 }) {
   try {
     const event = await prisma.event.update({
@@ -93,6 +112,9 @@ export async function updateEvent(id: string, data: {
         paymentOptions: JSON.stringify(data.paymentOptions),
         qrCodeUrl: data.qrCodeUrl,
         category: data.category,
+        participants: {
+             set: data.selectedStudents.map(id => ({ id }))
+        }
       },
     });
     revalidatePath('/dashboard/events');
